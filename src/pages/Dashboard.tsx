@@ -1,0 +1,261 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Plus, Search, LogOut, Wrench, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { User, Session } from "@supabase/supabase-js";
+import { ThemeToggle } from "@/components/ThemeToggle";
+
+interface ServiceOrder {
+  id: string;
+  os_number: number;
+  status: string;
+  start_datetime: string;
+  client_name: string;
+  location: string;
+  problem_description: string;
+}
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [orders, setOrders] = useState<ServiceOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user]);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("service_orders")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
+    } catch (error: any) {
+      toast.error("Erro ao carregar ordens de serviço");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Pendente":
+        return "bg-warning text-warning-foreground";
+      case "Em Andamento":
+        return "bg-primary text-primary-foreground";
+      case "Concluída":
+        return "bg-success text-success-foreground";
+      case "Cancelada":
+        return "bg-destructive text-destructive-foreground";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "Pendente":
+        return <Clock className="w-4 h-4" />;
+      case "Em Andamento":
+        return <Wrench className="w-4 h-4" />;
+      case "Concluída":
+        return <CheckCircle className="w-4 h-4" />;
+      case "Cancelada":
+        return <XCircle className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.os_number.toString().includes(searchTerm) ||
+      order.location.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
+              <Wrench className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">RM Refrigeração</h1>
+              <p className="text-sm text-muted-foreground">Sistema de Ordens de Serviço</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Filters */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Filtros</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, OS ou local..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Filtrar por status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="Pendente">Pendente</SelectItem>
+                <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                <SelectItem value="Concluída">Concluída</SelectItem>
+                <SelectItem value="Cancelada">Cancelada</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        {/* New Order Button */}
+        <Button
+          onClick={() => navigate("/order/new")}
+          className="w-full h-14 text-lg shadow-lg"
+          size="lg"
+        >
+          <Plus className="w-6 h-6 mr-2" />
+          Nova Ordem de Serviço
+        </Button>
+
+        {/* Orders List */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">
+            {filteredOrders.length} {filteredOrders.length === 1 ? "Ordem" : "Ordens"} Encontrada
+            {filteredOrders.length !== 1 ? "s" : ""}
+          </h2>
+          
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : filteredOrders.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <Wrench className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  {searchTerm || statusFilter !== "all"
+                    ? "Nenhuma ordem encontrada com os filtros aplicados"
+                    : "Nenhuma ordem de serviço criada ainda"}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredOrders.map((order) => (
+              <Card
+                key={order.id}
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/order/${order.id}`)}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <CardTitle className="text-base">OS #{order.os_number}</CardTitle>
+                      <CardDescription>{order.client_name}</CardDescription>
+                    </div>
+                    <Badge className={getStatusColor(order.status)}>
+                      <span className="mr-1">{getStatusIcon(order.status)}</span>
+                      {order.status}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-muted-foreground line-clamp-2">{order.problem_description}</p>
+                    <p className="text-muted-foreground">
+                      <span className="font-medium">Local:</span> {order.location}
+                    </p>
+                    <p className="text-muted-foreground">
+                      <span className="font-medium">Início:</span>{" "}
+                      {new Date(order.start_datetime).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;
