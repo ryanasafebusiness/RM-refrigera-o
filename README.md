@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
+# 🏢 RM Refrigeração - Sistema de Ordens de Serviço
 
-## Project info
+Sistema completo de gestão de ordens de serviço desenvolvido especificamente para a RM Refrigeração, com funcionalidades avançadas para técnicos e gestão de serviços.
 
-**URL**: https://lovable.dev/projects/38ed099a-5026-4918-9c73-2bfafbc2aec6
+## ✨ Funcionalidades Principais
 
-## How can I edit this code?
+### 🔧 Gestão de Ordens de Serviço
+- **Criação de OS** - Formulário completo com validações
+- **Status em Tempo Real** - Pendente, Em Andamento, Concluída, Cancelada
+- **Técnico Responsável** - Atribuição e visualização do técnico
+- **Exclusão Segura** - Confirmação obrigatória para exclusão
 
-There are several ways of editing your application.
+### 👨‍🔧 Gestão de Técnicos
+- **Perfil Completo** - Nome, telefone, especialização
+- **Histórico de OS** - Todas as ordens do técnico
+- **Estatísticas** - Performance e satisfação do cliente
 
-**Use Lovable**
+### 🔩 Controle de Peças
+- **Peças Utilizadas** - Nome, quantidade, custo
+- **Peças Substituídas** - Peça antiga → Peça nova
+- **Fornecedores** - Rastreamento de origem das peças
+- **Custos** - Cálculo automático de custos
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/38ed099a-5026-4918-9c73-2bfafbc2aec6) and start prompting.
+### 📸 Mídia e Documentação
+- **Fotos e Vídeos** - Upload de evidências do problema e solução
+- **Assinatura Digital** - Assinatura do cliente na OS
+- **Observações** - Notas internas e descrições detalhadas
 
-Changes made via Lovable will be committed automatically to this repo.
+### 📊 Relatórios Completos
+- **Relatório Detalhado** - Todas as informações da OS
+- **Exportação PDF** - Geração de relatório para impressão
+- **Impressão Direta** - Layout otimizado para impressão
+- **Dados do Técnico** - Informações do responsável
 
-**Use your preferred IDE**
+### 🌙 Interface Moderna
+- **Modo Escuro/Claro** - Toggle automático
+- **Design Responsivo** - Funciona em todos os dispositivos
+- **Componentes Modernos** - UI/UX profissional
+- **Navegação Intuitiva** - Interface amigável
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🚀 Tecnologias Utilizadas
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI Components**: Shadcn/ui + Radix UI
+- **Styling**: Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **State Management**: React Query
+- **Routing**: React Router DOM
+- **Forms**: React Hook Form + Zod
+- **Notifications**: Sonner
 
-Follow these steps:
+## 📦 Instalação e Configuração
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 1. Clone o Repositório
+```bash
+git clone https://github.com/dutraposto/evolink-field-report.git
+cd evolink-field-report
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 2. Instale as Dependências
+```bash
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### 3. Configure o Supabase
+Crie um arquivo `.env` na raiz do projeto:
+```env
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sua-chave-publica
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+### 4. Execute as Migrações
+```bash
+# Se usando Supabase local
+npx supabase db reset
+
+# Se usando Supabase em produção, aplique as migrações manualmente
+```
+
+### 5. Inicie o Servidor
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🗄️ Estrutura do Banco de Dados
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Tabelas Principais
+- **service_orders** - Ordens de serviço
+- **profiles** - Perfis dos técnicos
+- **order_photos** - Fotos e vídeos
+- **order_parts_used** - Peças utilizadas
+- **order_parts_replaced** - Peças substituídas
+- **order_signatures** - Assinaturas digitais
 
-**Use GitHub Codespaces**
+### Políticas RLS
+- Acesso baseado em autenticação
+- Técnicos podem gerenciar suas próprias OS
+- Políticas flexíveis para colaboração
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📱 Como Usar
 
-## What technologies are used for this project?
+### 1. Acesso ao Sistema
+- Acesse `http://localhost:8081`
+- Faça login ou crie uma conta
+- Configure seu perfil de técnico
 
-This project is built with:
+### 2. Criar Nova OS
+- Clique em "Nova Ordem de Serviço"
+- Preencha os dados do cliente
+- Descreva o problema
+- Salve a OS
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 3. Gerenciar OS Existente
+- Acesse uma OS da lista
+- Adicione fotos/vídeos do problema
+- Descreva o serviço realizado
+- Registre peças utilizadas/substituídas
+- Colete assinatura do cliente
+- Atualize o status
 
-## How can I deploy this project?
+### 4. Gerar Relatório
+- Clique em "Gerar Relatório Completo"
+- Visualize todas as informações
+- Imprima ou baixe como PDF
 
-Simply open [Lovable](https://lovable.dev/projects/38ed099a-5026-4918-9c73-2bfafbc2aec6) and click on Share -> Publish.
+## 🔧 Funcionalidades Avançadas
 
-## Can I connect a custom domain to my Lovable project?
+### Modo Escuro
+- Toggle automático no header
+- Persistência da preferência
+- Transições suaves
 
-Yes, you can!
+### Gestão de Peças
+- Interface intuitiva para adicionar/remover
+- Validações de campos obrigatórios
+- Cálculo automático de custos
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Upload de Mídia
+- Suporte a fotos e vídeos
+- Compressão automática
+- Organização por tipo (problema/solução)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### Relatórios
+- Layout profissional
+- Dados completos da OS
+- Informações do técnico
+- Lista detalhada de peças
+
+## 🛡️ Segurança
+
+- **Autenticação** - Login seguro com Supabase Auth
+- **Políticas RLS** - Controle de acesso granular
+- **Validação** - Validação de dados no frontend e backend
+- **Confirmação** - Diálogos de confirmação para ações críticas
+
+## 📈 Melhorias Futuras
+
+- [ ] Dashboard com estatísticas
+- [ ] Notificações push
+- [ ] Integração com WhatsApp
+- [ ] Sistema de agendamento
+- [ ] Relatórios avançados
+- [ ] API para integrações
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📞 Suporte
+
+Para suporte técnico ou dúvidas sobre o sistema, entre em contato com a equipe de desenvolvimento.
+
+---
+
+**Desenvolvido com ❤️ para RM Refrigeração**
