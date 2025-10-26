@@ -104,8 +104,17 @@ const ServiceOrder = () => {
   };
 
   const loadSignature = async () => {
-    const { data } = await supabase.from("order_signatures").select("*").eq("order_id", id).single();
-    if (data) setSignature(data.signature_data);
+    try {
+      const { data, error } = await supabase.from("order_signatures").select("*").eq("order_id", id).single();
+      if (data && !error) {
+        setSignature(data.signature_data);
+      } else if (error && error.code !== 'PGRST116') {
+        // PGRST116 is "no rows returned" - this is expected if no signature exists
+        console.warn('Erro ao carregar assinatura:', error.message);
+      }
+    } catch (error) {
+      console.warn('Erro ao carregar assinatura:', error);
+    }
   };
 
   const loadTechnician = async (technicianId: string) => {
@@ -214,30 +223,55 @@ const ServiceOrder = () => {
   };
 
   const handleDeleteOrder = async () => {
-    if (!id) return;
+    if (!id) {
+      console.error("No ID provided for deletion");
+      return;
+    }
 
     try {
+      console.log("Starting deletion process for order:", id);
       setLoading(true);
       
-      // Delete related data first (due to foreign key constraints)
-      await supabase.from("order_photos").delete().eq("order_id", id);
-      await supabase.from("order_parts_used").delete().eq("order_id", id);
-      await supabase.from("order_parts_replaced").delete().eq("order_id", id);
-      await supabase.from("order_signatures").delete().eq("order_id", id);
+      // Verify user authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
-      // Delete the main order
-      const { error } = await supabase
+      if (authError || !user) {
+        console.error("Authentication error:", authError);
+        toast.error("Erro de autenticação");
+        return;
+      }
+      
+      console.log("User authenticated:", user.id);
+      
+      // With ON DELETE CASCADE, we only need to delete the main order
+      // All related data will be automatically deleted
+      console.log("Attempting to delete order from database...");
+      const { data, error: orderError } = await supabase
         .from("service_orders")
         .delete()
-        .eq("id", id);
+        .eq("id", id)
+        .select();
 
-      if (error) throw error;
+      console.log("Delete result:", { data, error: orderError });
 
+      if (orderError) {
+        console.error("Error deleting order:", orderError);
+        
+        // Check if it's an RLS policy error
+        if (orderError.message?.includes("row-level security") || orderError.code === 'PGRST301') {
+          toast.error("Você não tem permissão para excluir esta OS");
+        } else {
+          throw orderError;
+        }
+        return;
+      }
+
+      console.log("Order deleted successfully");
       toast.success("OS excluída com sucesso!");
       navigate("/dashboard");
     } catch (error: any) {
-      toast.error("Erro ao excluir OS: " + error.message);
-      console.error(error);
+      console.error("Complete delete error:", error);
+      toast.error("Erro ao excluir OS: " + (error.message || "Erro desconhecido"));
     } finally {
       setLoading(false);
       setShowDeleteDialog(false);
@@ -290,6 +324,27 @@ const ServiceOrder = () => {
           throw error;
         }
         
+        // Save signature if exists
+        if (signature) {
+          console.log("Saving signature for new order:", data.id);
+          const { data: sigData, error: sigError } = await supabase
+            .from("order_signatures")
+            .insert({
+              order_id: data.id,
+              signature_data: signature,
+            })
+            .select();
+          
+          if (sigError) {
+            console.error("Error saving signature:", sigError);
+            toast.error("Assinatura não foi salva: " + sigError.message);
+          } else {
+            console.log("Signature saved successfully:", sigData);
+          }
+        } else {
+          console.log("No signature to save");
+        }
+        
         toast.success("OS criada com sucesso!");
         navigate(`/order/${data.id}`);
       } else {
@@ -309,6 +364,28 @@ const ServiceOrder = () => {
           .eq("id", id);
 
         if (error) throw error;
+        
+        // Save or update signature
+        if (signature && id) {
+          console.log("Saving/updating signature for order:", id);
+          const { data: sigData, error: sigError } = await supabase
+            .from("order_signatures")
+            .upsert({
+              order_id: id,
+              signature_data: signature,
+            })
+            .select();
+          
+          if (sigError) {
+            console.error("Error saving signature:", sigError);
+            toast.error("Assinatura não foi salva: " + sigError.message);
+          } else {
+            console.log("Signature saved successfully:", sigData);
+          }
+        } else {
+          console.log("No signature to save");
+        }
+        
         toast.success("OS atualizada com sucesso!");
       }
     } catch (error: any) {
@@ -625,17 +702,19 @@ const ServiceOrder = () => {
               <Trash2 className="w-5 h-5 text-destructive" />
               Excluir Ordem de Serviço
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir esta OS? Esta ação não pode ser desfeita.
-              <br />
-              <br />
-              <strong>Serão excluídos:</strong>
-              <ul className="list-disc list-inside mt-2 space-y-1">
-                <li>Dados da ordem de serviço</li>
-                <li>Fotos e vídeos anexados</li>
-                <li>Peças utilizadas e substituídas</li>
-                <li>Assinatura digital</li>
-              </ul>
+            <AlertDialogDescription asChild>
+              <div>
+                Tem certeza que deseja excluir esta OS? Esta ação não pode ser desfeita.
+                <br />
+                <br />
+                <strong>Serão excluídos:</strong>
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>Dados da ordem de serviço</li>
+                  <li>Fotos e vídeos anexados</li>
+                  <li>Peças utilizadas e substituídas</li>
+                  <li>Assinatura digital</li>
+                </ul>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

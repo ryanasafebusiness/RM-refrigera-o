@@ -106,12 +106,17 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
       setPartsReplaced(partsReplacedData || []);
 
       // Load signature
-      const { data: signatureData } = await supabase
+      const { data: signatureData, error: signatureError } = await supabase
         .from("order_signatures")
         .select("*")
         .eq("order_id", orderId)
         .single();
-      setSignature(signatureData);
+      
+      if (signatureData && !signatureError) {
+        setSignature(signatureData);
+      } else if (signatureError && signatureError.code !== 'PGRST116') {
+        console.warn('Erro ao carregar assinatura:', signatureError.message);
+      }
 
       // Load technician
       if (orderData.technician_id) {

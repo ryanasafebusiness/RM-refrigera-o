@@ -33,36 +33,67 @@ const PhotoUpload = ({
       }
 
       const file = event.target.files[0];
+      
+      // Validar tamanho do arquivo (máximo 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error("Arquivo muito grande. Tamanho máximo: 10MB");
+        return;
+      }
+
+      // Validar tipo MIME
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Tipo de arquivo não suportado. Use JPEG, PNG, WebP ou HEIC");
+        return;
+      }
+
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `${orderId}/${fileName}`;
 
+      // Upload para o storage
       const { error: uploadError } = await supabase.storage
         .from("order-photos")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Erro no upload: ${uploadError.message}`);
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from("order-photos")
         .getPublicUrl(filePath);
 
+      // Inserir no banco de dados
       const { error: dbError } = await supabase
         .from("order_photos")
         .insert({
           order_id: orderId,
           photo_url: publicUrl,
           photo_type: photoType,
+          media_type: 'image'
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Erro no banco de dados: ${dbError.message}`);
+      }
 
       toast.success("Foto enviada com sucesso!");
       onPhotosChange();
     } catch (error: any) {
-      toast.error("Erro ao enviar foto: " + error.message);
+      console.error('Upload error:', error);
+      const errorMessage = error.message || "Erro desconhecido ao enviar foto";
+      toast.error(`Erro ao enviar foto: ${errorMessage}`);
     } finally {
       setUploading(false);
+      // Reset input
+      event.target.value = "";
     }
   };
 

@@ -64,6 +64,28 @@ const MediaUpload = ({
       }
 
       const file = event.target.files[0];
+      
+      // Validar tamanho do arquivo (máximo 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB
+      if (file.size > maxSize) {
+        toast.error("Arquivo muito grande. Tamanho máximo: 10MB");
+        return;
+      }
+
+      // Validar tipo MIME
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+      const allowedVideoTypes = ['video/mp4', 'video/quicktime', 'video/webm'];
+      
+      if (mediaType === "image" && !allowedImageTypes.includes(file.type)) {
+        toast.error("Tipo de arquivo não suportado. Use JPEG, PNG, WebP ou HEIC");
+        return;
+      }
+      
+      if (mediaType === "video" && !allowedVideoTypes.includes(file.type)) {
+        toast.error("Tipo de vídeo não suportado. Use MP4, QuickTime ou WebM");
+        return;
+      }
+
       let duration: number | undefined;
 
       // Validate video duration
@@ -77,19 +99,27 @@ const MediaUpload = ({
       }
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
       const filePath = `${orderId}/${fileName}`;
 
+      // Upload para o storage
       const { error: uploadError } = await supabase.storage
         .from("order-photos")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw new Error(`Erro no upload: ${uploadError.message}`);
+      }
 
       const { data: { publicUrl } } = supabase.storage
         .from("order-photos")
         .getPublicUrl(filePath);
 
+      // Inserir no banco de dados
       const { error: dbError } = await supabase
         .from("order_photos")
         .insert({
@@ -100,12 +130,17 @@ const MediaUpload = ({
           duration_seconds: duration,
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Erro no banco de dados: ${dbError.message}`);
+      }
 
       toast.success(mediaType === "image" ? "Foto enviada com sucesso!" : "Vídeo enviado com sucesso!");
       onMediaChange();
     } catch (error: any) {
-      toast.error("Erro ao enviar: " + error.message);
+      console.error('Upload error:', error);
+      const errorMessage = error.message || "Erro desconhecido ao enviar arquivo";
+      toast.error(`Erro ao enviar: ${errorMessage}`);
     } finally {
       setUploading(false);
       // Reset input

@@ -138,7 +138,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-              <Wrench className="w-6 h-6" />
+              <img src="/logo-cyan.svg" alt="RM Refrigeração" className="w-8 h-8" />
             </div>
             <div>
               <h1 className="text-xl font-bold">RM Refrigeração</h1>
@@ -223,7 +223,7 @@ const Dashboard = () => {
               <Card
                 key={order.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/order/${order.id}`)}
+                onClick={() => navigate(`/order/${order.id}/details`)}
               >
                 <CardHeader>
                   <div className="flex items-start justify-between">
