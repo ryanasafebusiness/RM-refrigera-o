@@ -4,12 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Plus, Search, LogOut, Wrench, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { ClipboardList, LogOut, Wrench, Clock, CheckCircle, XCircle, Loader2, Users, FileText, TrendingUp } from "lucide-react";
 import { User, Session } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import MobileNavigation from "@/components/MobileNavigation";
 
 interface ServiceOrder {
   id: string;
@@ -27,8 +26,6 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -97,31 +94,14 @@ const Dashboard = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "Pendente":
-        return <Clock className="w-4 h-4" />;
-      case "Em Andamento":
-        return <Wrench className="w-4 h-4" />;
-      case "Concluída":
-        return <CheckCircle className="w-4 h-4" />;
-      case "Cancelada":
-        return <XCircle className="w-4 h-4" />;
-      default:
-        return null;
-    }
+  // Calcular estatísticas
+  const stats = {
+    total: orders.length,
+    pending: orders.filter(o => o.status === "Pendente").length,
+    inProgress: orders.filter(o => o.status === "Em Andamento").length,
+    completed: orders.filter(o => o.status === "Concluída").length,
+    cancelled: orders.filter(o => o.status === "Cancelada").length,
   };
-
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.os_number.toString().includes(searchTerm) ||
-      order.location.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
 
   if (loading && !user) {
     return (
@@ -132,128 +112,200 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-24">
       {/* Header */}
       <header className="bg-card border-b sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
-              <img src="/logo-cyan.svg" alt="RM Refrigeração" className="w-8 h-8" />
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+              <img src="/logo-cyan.svg" alt="RM Refrigeração" className="w-6 h-6 md:w-8 md:h-8" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold">RM Refrigeração</h1>
-              <p className="text-sm text-muted-foreground">Sistema de Ordens de Serviço</p>
+            <div className="min-w-0">
+              <h1 className="text-lg md:text-xl font-bold truncate">RM Refrigeração</h1>
+              <p className="text-xs md:text-sm text-muted-foreground hidden sm:block">Sistema de Ordens de Serviço</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Sair
-            </Button>
-          </div>
+                 <div className="flex items-center gap-2">
+                   <Button variant="outline" size="sm" onClick={() => navigate("/clients")} className="hidden md:flex">
+                     <Users className="w-4 h-4 mr-2" />
+                     Clientes
+                   </Button>
+                   <ThemeToggle />
+                   <Button variant="outline" size="sm" onClick={handleLogout} className="hidden md:flex">
+                     <LogOut className="w-4 h-4 mr-2" />
+                     Sair
+                   </Button>
+                 </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Filters */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Filtros</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por cliente, OS ou local..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
-                <SelectValue placeholder="Filtrar por status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Status</SelectItem>
-                <SelectItem value="Pendente">Pendente</SelectItem>
-                <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                <SelectItem value="Concluída">Concluída</SelectItem>
-                <SelectItem value="Cancelada">Cancelada</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* New Order Button */}
-        <Button
-          onClick={() => navigate("/order/new")}
-          className="w-full h-14 text-lg shadow-lg"
-          size="lg"
-        >
-          <Plus className="w-6 h-6 mr-2" />
-          Nova Ordem de Serviço
-        </Button>
-
-        {/* Orders List */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">
-            {filteredOrders.length} {filteredOrders.length === 1 ? "Ordem" : "Ordens"} Encontrada
-            {filteredOrders.length !== 1 ? "s" : ""}
-          </h2>
-          
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Wrench className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  {searchTerm || statusFilter !== "all"
-                    ? "Nenhuma ordem encontrada com os filtros aplicados"
-                    : "Nenhuma ordem de serviço criada ainda"}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            filteredOrders.map((order) => (
-              <Card
-                key={order.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/order/${order.id}/details`)}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <CardTitle className="text-base">OS #{order.os_number}</CardTitle>
-                      <CardDescription>{order.client_name}</CardDescription>
-                    </div>
-                    <Badge className={getStatusColor(order.status)}>
-                      <span className="mr-1">{getStatusIcon(order.status)}</span>
-                      {order.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-muted-foreground line-clamp-2">{order.problem_description}</p>
-                    <p className="text-muted-foreground">
-                      <span className="font-medium">Local:</span> {order.location}
-                    </p>
-                    <p className="text-muted-foreground">
-                      <span className="font-medium">Início:</span>{" "}
-                      {new Date(order.start_datetime).toLocaleString("pt-BR")}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
+        {/* Quick Stats */}
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4">
+          <Card>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardDescription className="text-xs">Total</CardDescription>
+              <CardTitle className="text-2xl md:text-3xl">{stats.total}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <p className="text-[10px] md:text-xs text-muted-foreground">Ordens de Serviço</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardDescription className="text-xs">Pendentes</CardDescription>
+              <CardTitle className="text-2xl md:text-3xl text-warning">{stats.pending}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="flex items-center gap-1">
+                <Clock className="w-2 h-2 md:w-3 md:h-3 text-muted-foreground" />
+                <p className="text-[10px] md:text-xs text-muted-foreground">Aguardando</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardDescription className="text-xs">Em Andamento</CardDescription>
+              <CardTitle className="text-2xl md:text-3xl text-primary">{stats.inProgress}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="flex items-center gap-1">
+                <Wrench className="w-2 h-2 md:w-3 md:h-3 text-muted-foreground" />
+                <p className="text-[10px] md:text-xs text-muted-foreground">Executando</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2 md:pb-3">
+              <CardDescription className="text-xs">Concluídas</CardDescription>
+              <CardTitle className="text-2xl md:text-3xl text-success">{stats.completed}</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-2">
+              <div className="flex items-center gap-1">
+                <CheckCircle className="w-2 h-2 md:w-3 md:h-3 text-muted-foreground" />
+                <p className="text-[10px] md:text-xs text-muted-foreground">Finalizadas</p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+            onClick={() => navigate("/orders")}
+          >
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <ClipboardList className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Ordens de Serviço</CardTitle>
+                  <CardDescription>Gerenciar OS</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Visualizar e gerenciar todas as ordens de serviço
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+            onClick={() => navigate("/order/new")}
+          >
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-success" />
+                </div>
+                <div>
+                  <CardTitle>Nova OS</CardTitle>
+                  <CardDescription>Criar ordem</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Registrar uma nova ordem de serviço
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card 
+            className="cursor-pointer hover:shadow-lg transition-all hover:scale-105"
+            onClick={() => navigate("/clients")}
+          >
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <CardTitle>Clientes</CardTitle>
+                  <CardDescription>Cadastro</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Gerenciar cadastro de clientes
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Recent Orders */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : orders.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Ordens Recentes
+                </CardTitle>
+                <Button variant="link" onClick={() => navigate("/orders")}>
+                  Ver todas
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {orders.slice(0, 5).map((order) => (
+                  <div
+                    key={order.id}
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted cursor-pointer transition-colors"
+                    onClick={() => navigate(`/order/${order.id}/details`)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">OS #{order.os_number}</p>
+                        <Badge variant="outline" className={getStatusColor(order.status)}>
+                          {order.status}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{order.client_name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{order.location}</p>
+                    </div>
+                    <div className="text-right text-sm text-muted-foreground">
+                      {new Date(order.start_datetime).toLocaleDateString("pt-BR")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
+
+      <MobileNavigation />
     </div>
   );
 };

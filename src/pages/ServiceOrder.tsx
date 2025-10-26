@@ -13,17 +13,13 @@ import { ArrowLeft, Save, Loader2, Plus, X, FileText, Trash2, Wrench, User } fro
 import MediaUpload from "@/components/MediaUpload";
 import SignatureCanvas from "@/components/SignatureCanvas";
 import ServiceReport from "@/components/ServiceReport";
-
-interface PartItem {
-  id: string;
-  item_name: string;
-  quantity: number;
-}
+import MobileNavigation from "@/components/MobileNavigation";
 
 interface ReplacedPart {
   id: string;
   old_part: string;
   new_part: string;
+  part_value?: number;
 }
 
 const ServiceOrder = () => {
@@ -41,7 +37,6 @@ const ServiceOrder = () => {
   const [serviceDescription, setServiceDescription] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
   const [photos, setPhotos] = useState<Array<{ id: string; photo_url: string; photo_type: string; media_type: string; duration_seconds?: number }>>([]);
-  const [partsUsed, setPartsUsed] = useState<PartItem[]>([]);
   const [partsReplaced, setPartsReplaced] = useState<ReplacedPart[]>([]);
   const [signature, setSignature] = useState<string>("");
   const [showReport, setShowReport] = useState(false);
@@ -49,10 +44,10 @@ const ServiceOrder = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   
   // Parts management states
-  const [newPartName, setNewPartName] = useState("");
-  const [newPartQuantity, setNewPartQuantity] = useState(1);
   const [newOldPart, setNewOldPart] = useState("");
   const [newNewPart, setNewNewPart] = useState("");
+  const [newPartValue, setNewPartValue] = useState("");
+  const [totalValue, setTotalValue] = useState(0);
 
   useEffect(() => {
     if (!isNewOrder) {
@@ -79,6 +74,7 @@ const ServiceOrder = () => {
       setProblemDescription(data.problem_description);
       setServiceDescription(data.service_description || "");
       setInternalNotes(data.internal_notes || "");
+      setTotalValue((data as any).total_value || 0);
 
       loadPhotos();
       loadParts();
@@ -97,10 +93,8 @@ const ServiceOrder = () => {
   };
 
   const loadParts = async () => {
-    const { data: used } = await supabase.from("order_parts_used").select("*").eq("order_id", id);
-    const { data: replaced } = await supabase.from("order_parts_replaced").select("*").eq("order_id", id);
-    if (used) setPartsUsed(used);
-    if (replaced) setPartsReplaced(replaced);
+    const { data } = await supabase.from("order_parts_replaced").select("*").eq("order_id", id);
+    if (data) setPartsReplaced(data);
   };
 
   const loadSignature = async () => {
@@ -140,41 +134,19 @@ const ServiceOrder = () => {
     }
   };
 
-  const addPartUsed = async () => {
-    if (!newPartName.trim() || !id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("order_parts_used")
-        .insert({
-          order_id: id,
-          item_name: newPartName.trim(),
-          quantity: newPartQuantity
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      setPartsUsed([...partsUsed, data]);
-      setNewPartName("");
-      setNewPartQuantity(1);
-      toast.success("Peça adicionada com sucesso!");
-    } catch (error: any) {
-      toast.error("Erro ao adicionar peça: " + error.message);
-    }
-  };
-
   const addPartReplaced = async () => {
     if (!newOldPart.trim() || !newNewPart.trim() || !id) return;
 
     try {
+      const partValue = parseFloat(newPartValue) || 0;
+      
       const { data, error } = await supabase
         .from("order_parts_replaced")
         .insert({
           order_id: id,
           old_part: newOldPart.trim(),
-          new_part: newNewPart.trim()
+          new_part: newNewPart.trim(),
+          part_value: partValue
         })
         .select()
         .single();
@@ -184,30 +156,23 @@ const ServiceOrder = () => {
       setPartsReplaced([...partsReplaced, data]);
       setNewOldPart("");
       setNewNewPart("");
+      setNewPartValue("");
+      
+      // Atualizar valor total
+      const newTotal = totalValue + partValue;
+      setTotalValue(newTotal);
+      
       toast.success("Substituição adicionada com sucesso!");
     } catch (error: any) {
       toast.error("Erro ao adicionar substituição: " + error.message);
     }
   };
 
-  const removePartUsed = async (partId: string) => {
-    try {
-      const { error } = await supabase
-        .from("order_parts_used")
-        .delete()
-        .eq("id", partId);
-
-      if (error) throw error;
-      
-      setPartsUsed(partsUsed.filter(p => p.id !== partId));
-      toast.success("Peça removida com sucesso!");
-    } catch (error: any) {
-      toast.error("Erro ao remover peça: " + error.message);
-    }
-  };
-
   const removePartReplaced = async (partId: string) => {
     try {
+      // Encontrar a peça antes de remover para subtrair do total
+      const partToRemove = partsReplaced.find(p => p.id === partId);
+      
       const { error } = await supabase
         .from("order_parts_replaced")
         .delete()
@@ -216,6 +181,13 @@ const ServiceOrder = () => {
       if (error) throw error;
       
       setPartsReplaced(partsReplaced.filter(p => p.id !== partId));
+      
+      // Atualizar valor total
+      if (partToRemove && partToRemove.part_value) {
+        const newTotal = totalValue - partToRemove.part_value;
+        setTotalValue(Math.max(0, newTotal));
+      }
+      
       toast.success("Substituição removida com sucesso!");
     } catch (error: any) {
       toast.error("Erro ao remover substituição: " + error.message);
@@ -359,6 +331,7 @@ const ServiceOrder = () => {
             problem_description: problemDescription,
             service_description: serviceDescription,
             internal_notes: internalNotes,
+            total_value: totalValue,
             completion_datetime: status === "Concluída" ? new Date().toISOString() : null,
           })
           .eq("id", id);
@@ -396,7 +369,7 @@ const ServiceOrder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24">
       <header className="bg-card border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
@@ -493,58 +466,6 @@ const ServiceOrder = () => {
                 </CardContent>
               </Card>
 
-              {/* Parts Used */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="w-5 h-5" />
-                    Peças Utilizadas
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {partsUsed.map((part) => (
-                      <div key={part.id} className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium">{part.item_name}</p>
-                          <p className="text-sm text-muted-foreground">Quantidade: {part.quantity}</p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removePartUsed(part.id)}
-                        >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Nome da peça"
-                        value={newPartName}
-                        onChange={(e) => setNewPartName(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Qtd"
-                        value={newPartQuantity}
-                        onChange={(e) => setNewPartQuantity(parseInt(e.target.value) || 1)}
-                        className="w-20"
-                        min="1"
-                      />
-                      <Button
-                        onClick={addPartUsed}
-                        disabled={!newPartName.trim()}
-                        size="sm"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Parts Replaced */}
               <Card>
                 <CardHeader>
@@ -561,6 +482,11 @@ const ServiceOrder = () => {
                           <div className="flex-1">
                             <p className="font-medium">De: {part.old_part}</p>
                             <p className="text-sm text-muted-foreground">Para: {part.new_part}</p>
+                            {part.part_value && (
+                              <p className="text-sm font-semibold text-primary mt-1">
+                                Valor: R$ {part.part_value.toFixed(2)}
+                              </p>
+                            )}
                           </div>
                           <Button
                             variant="outline"
@@ -583,6 +509,13 @@ const ServiceOrder = () => {
                         value={newNewPart}
                         onChange={(e) => setNewNewPart(e.target.value)}
                       />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Valor da peça (R$)"
+                        value={newPartValue}
+                        onChange={(e) => setNewPartValue(e.target.value)}
+                      />
                       <Button
                         onClick={addPartReplaced}
                         disabled={!newOldPart.trim() || !newNewPart.trim()}
@@ -594,6 +527,26 @@ const ServiceOrder = () => {
                       </Button>
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Valor Total */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    💰 Valor Total
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg">
+                    <span className="text-lg font-semibold">Total:</span>
+                    <span className="text-2xl font-bold text-primary">
+                      R$ {totalValue.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    * Valor calculado automaticamente com base nas peças substituídas
+                  </p>
                 </CardContent>
               </Card>
 
@@ -741,6 +694,8 @@ const ServiceOrder = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MobileNavigation />
     </div>
   );
 };

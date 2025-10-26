@@ -22,6 +22,7 @@ interface ServiceOrder {
   problem_description: string;
   service_description?: string;
   internal_notes?: string;
+  total_value?: number;
   created_at: string;
   updated_at: string;
 }
@@ -34,16 +35,11 @@ interface OrderPhoto {
   duration_seconds?: number;
 }
 
-interface OrderPart {
-  id: string;
-  item_name: string;
-  quantity: number;
-}
-
 interface ReplacedPart {
   id: string;
   old_part: string;
   new_part: string;
+  part_value?: number;
 }
 
 interface OrderSignature {
@@ -61,7 +57,6 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<ServiceOrder | null>(null);
   const [photos, setPhotos] = useState<OrderPhoto[]>([]);
-  const [partsUsed, setPartsUsed] = useState<OrderPart[]>([]);
   const [partsReplaced, setPartsReplaced] = useState<ReplacedPart[]>([]);
   const [signature, setSignature] = useState<OrderSignature | null>(null);
   const [technician, setTechnician] = useState<{ id: string; name: string } | null>(null);
@@ -90,13 +85,6 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
         .select("*")
         .eq("order_id", orderId);
       setPhotos(photosData || []);
-
-      // Load parts used
-      const { data: partsUsedData } = await supabase
-        .from("order_parts_used")
-        .select("*")
-        .eq("order_id", orderId);
-      setPartsUsed(partsUsedData || []);
 
       // Load parts replaced
       const { data: partsReplacedData } = await supabase
@@ -294,28 +282,6 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
       </div>
       ` : ''}
 
-      ${partsUsed.length > 0 ? `
-      <div class="section">
-        <h3>Peças Utilizadas</h3>
-        <table class="parts-table">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Quantidade</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${partsUsed.map(part => `
-              <tr>
-                <td>${part.item_name}</td>
-                <td>${part.quantity}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
-
       ${partsReplaced.length > 0 ? `
       <div class="section">
         <h3>Peças Substituídas</h3>
@@ -324,6 +290,7 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
             <tr>
               <th>Peça Antiga</th>
               <th>Peça Nova</th>
+              <th>Valor</th>
             </tr>
           </thead>
           <tbody>
@@ -331,10 +298,21 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
               <tr>
                 <td>${part.old_part}</td>
                 <td>${part.new_part}</td>
+                <td>${part.part_value ? `R$ ${part.part_value.toFixed(2)}` : '-'}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+      </div>
+      ` : ''}
+
+      ${order.total_value && order.total_value > 0 ? `
+      <div class="section">
+        <h3>Valor Total</h3>
+        <div style="background: #e0f2fe; padding: 20px; border-radius: 8px; text-align: center;">
+          <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">Total do Serviço</div>
+          <div style="font-size: 32px; font-weight: bold; color: #2563eb;">R$ ${order.total_value.toFixed(2)}</div>
+        </div>
       </div>
       ` : ''}
 
@@ -515,25 +493,6 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
         </Card>
       )}
 
-      {/* Parts Used */}
-      {partsUsed.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Peças Utilizadas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {partsUsed.map((part) => (
-                <div key={part.id} className="flex justify-between items-center p-2 bg-muted rounded">
-                  <span>{part.item_name}</span>
-                  <Badge variant="secondary">Qtd: {part.quantity}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Parts Replaced */}
       {partsReplaced.length > 0 && (
         <Card className="mb-6">
@@ -548,10 +507,34 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
                     <div>
                       <p className="font-medium">De: {part.old_part}</p>
                       <p className="text-sm text-muted-foreground">Para: {part.new_part}</p>
+                      {part.part_value && (
+                        <p className="text-sm font-semibold text-primary mt-1">
+                          Valor: R$ {part.part_value.toFixed(2)}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Total Value */}
+      {order.total_value && order.total_value > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              💰 Valor Total
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-6 bg-primary/10 rounded-lg">
+              <span className="text-lg font-semibold">Total do Serviço:</span>
+              <span className="text-3xl font-bold text-primary">
+                R$ {order.total_value.toFixed(2)}
+              </span>
             </div>
           </CardContent>
         </Card>

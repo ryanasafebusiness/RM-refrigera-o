@@ -21,6 +21,7 @@ export type Database = {
           new_part: string
           old_part: string
           order_id: string
+          part_value: number | null
         }
         Insert: {
           created_at?: string
@@ -28,6 +29,7 @@ export type Database = {
           new_part: string
           old_part: string
           order_id: string
+          part_value?: number | null
         }
         Update: {
           created_at?: string
@@ -35,6 +37,7 @@ export type Database = {
           new_part?: string
           old_part?: string
           order_id?: string
+          part_value?: number | null
         }
         Relationships: [
           {
@@ -169,6 +172,51 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          id: string
+          name: string
+          email: string | null
+          phone: string
+          address: string | null
+          city: string | null
+          state: string | null
+          zip_code: string | null
+          notes: string | null
+          created_at: string
+          updated_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          email?: string | null
+          phone: string
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          zip_code?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          email?: string | null
+          phone?: string
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          zip_code?: string | null
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+          created_by?: string | null
+        }
+        Relationships: []
+      }
       service_orders: {
         Row: {
           client_name: string
@@ -185,6 +233,7 @@ export type Database = {
           start_datetime: string
           status: string
           technician_id: string
+          total_value: number | null
           updated_at: string
         }
         Insert: {
@@ -202,6 +251,7 @@ export type Database = {
           start_datetime?: string
           status?: string
           technician_id: string
+          total_value?: number | null
           updated_at?: string
         }
         Update: {
@@ -219,6 +269,7 @@ export type Database = {
           start_datetime?: string
           status?: string
           technician_id?: string
+          total_value?: number | null
           updated_at?: string
         }
         Relationships: []

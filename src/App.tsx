@@ -8,8 +8,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import ServiceOrders from "./pages/ServiceOrders";
 import ServiceOrder from "./pages/ServiceOrder";
 import ServiceOrderDetails from "./pages/ServiceOrderDetails";
+import Clients from "./pages/Clients";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/orders" 
+              element={
+                <ProtectedRoute requireAuth={true}>
+                  <ServiceOrders />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/order/new" 
               element={
                 <ProtectedRoute requireAuth={true}>
@@ -58,6 +68,14 @@ const App = () => (
               element={
                 <ProtectedRoute requireAuth={true}>
                   <ServiceOrder />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/clients" 
+              element={
+                <ProtectedRoute requireAuth={true}>
+                  <Clients />
                 </ProtectedRoute>
               } 
             />
