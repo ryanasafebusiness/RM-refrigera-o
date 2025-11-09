@@ -1,104 +1,73 @@
-# 🚀 Backend API - RM Refrigeração
+# Backend API - RM Refrigeração
 
-## ✅ Backend Criado com Sucesso!
+## Rotas Implementadas
 
-A API backend foi criada usando Express.js + JWT + Neon PostgreSQL.
+### Autenticação (`/api/auth`)
+- `POST /api/auth/signup` - Criar conta
+- `POST /api/auth/login` - Fazer login
+- `GET /api/auth/me` - Obter usuário atual (protegido)
 
-## 📁 Estrutura
+### Clientes (`/api/clients`)
+- `GET /api/clients` - Listar todos os clientes (protegido)
+- `GET /api/clients/:id` - Obter cliente específico (protegido)
+- `POST /api/clients` - Criar cliente (protegido)
+- `PUT /api/clients/:id` - Atualizar cliente (protegido)
+- `DELETE /api/clients/:id` - Deletar cliente (protegido)
 
-```
-backend/
-├── src/
-│   ├── config/
-│   │   └── db.js              # Conexão com Neon
-│   ├── middleware/
-│   │   └── auth.js            # JWT middleware
-│   ├── routes/
-│   │   ├── auth.js            # Login, Signup, Me
-│   │   └── serviceOrders.js   # CRUD de ordens
-│   └── server.js              # Servidor Express
-├── package.json
-└── .env.example
-```
+### Ordens de Serviço (`/api/service-orders`)
+- `GET /api/service-orders` - Listar todas as ordens do usuário (protegido)
+- `GET /api/service-orders/:id` - Obter ordem específica (protegido)
+- `POST /api/service-orders` - Criar ordem (protegido)
+- `PUT /api/service-orders/:id` - Atualizar ordem (protegido)
+- `DELETE /api/service-orders/:id` - Deletar ordem (protegido)
 
-## 🚀 Como Usar
+### Fotos/Vídeos (`/api/service-orders/:id/photos`)
+- `GET /api/service-orders/:id/photos` - Listar fotos da ordem (protegido)
+- `POST /api/service-orders/:id/photos` - Adicionar foto/vídeo (protegido)
+  - Aceita JSON: `{ photo_url, photo_type, media_type, duration_seconds }`
+  - Aceita FormData: `file`, `photoType`, `mediaType`, `durationSeconds`
+- `DELETE /api/service-orders/:id/photos/:photoId` - Deletar foto (protegido)
 
-### 1. Instalar Dependências
+### Peças Substituídas (`/api/service-orders/:id/parts`)
+- `GET /api/service-orders/:id/parts` - Listar peças da ordem (protegido)
+- `POST /api/service-orders/:id/parts` - Adicionar peça (protegido)
+  - Body: `{ old_part, new_part, part_value }`
+- `DELETE /api/service-orders/:id/parts/:partId` - Deletar peça (protegido)
 
-```bash
-cd backend
-npm install
-```
+### Assinaturas (`/api/service-orders/:id/signature`)
+- `GET /api/service-orders/:id/signature` - Obter assinatura da ordem (protegido)
+- `POST /api/service-orders/:id/signature` - Criar ou atualizar assinatura (protegido)
+  - Body: `{ signature_data }`
+- `PUT /api/service-orders/:id/signature` - Atualizar assinatura (protegido)
+  - Body: `{ signature_data }`
 
-### 2. Configurar `.env`
+## Migrações Necessárias
 
-Crie `backend/.env`:
+Execute a migração `003_add_missing_fields.sql` para adicionar campos faltantes:
+- `clients`: city, state, zip_code, notes, created_by
+- `order_parts_replaced`: part_value
+- `service_orders`: total_value
+
+## Variáveis de Ambiente
 
 ```env
-DATABASE_URL=postgresql://neondb_owner:npg_XjhkBC0QfLK9@ep-frosty-smoke-acmkrq4f-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-JWT_SECRET=gerar-uma-chave-secreta-aleatoria-aqui
+DATABASE_URL=postgresql://...
+JWT_SECRET=seu_secret_aqui
 PORT=3001
 FRONTEND_URL=http://localhost:8080
 ```
 
-**Gerar JWT_SECRET:**
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-### 3. Iniciar Backend
+## Iniciar o Servidor
 
 ```bash
-npm run dev
+cd backend
+npm install
+npm run dev  # Desenvolvimento com watch
+npm start   # Produção
 ```
 
-### 4. Configurar Frontend
+## Notas
 
-Adicione ao `.env` do frontend (raiz do projeto):
-
-```env
-VITE_API_URL=http://localhost:3001
-```
-
-### 5. Iniciar Frontend
-
-```bash
-npm run dev
-```
-
-## 📚 Endpoints
-
-### Autenticação
-- `POST /api/auth/signup` - Criar conta
-- `POST /api/auth/login` - Fazer login
-- `GET /api/auth/me` - Obter usuário atual
-
-### Service Orders
-- `GET /api/service-orders` - Listar ordens
-- `GET /api/service-orders/:id` - Obter ordem
-- `POST /api/service-orders` - Criar ordem
-- `PUT /api/service-orders/:id` - Atualizar ordem
-- `DELETE /api/service-orders/:id` - Deletar ordem
-
-## 🔐 Autenticação
-
-Todos os endpoints de service orders requerem o header:
-```
-Authorization: Bearer <token>
-```
-
-O token é obtido ao fazer login/signup e é armazenado no `localStorage`.
-
-## ✅ Status
-
-- ✅ Backend criado
-- ✅ Autenticação JWT implementada
-- ✅ Endpoints de service orders criados
-- ✅ Frontend adaptado para usar API
-- ⏳ Testar backend
-- ⏳ Testar integração frontend-backend
-
----
-
-**Próximo passo**: Instalar dependências do backend e testar!
-
+- Todas as rotas (exceto `/api/auth/signup` e `/api/auth/login`) requerem autenticação via JWT
+- O token deve ser enviado no header: `Authorization: Bearer <token>`
+- Upload de arquivos atualmente aceita URL ou FormData (para produção, considere usar S3/Cloudinary)
