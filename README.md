@@ -43,7 +43,8 @@ Sistema completo de gestão de ordens de serviço desenvolvido especificamente p
 - **Frontend**: React 18 + TypeScript + Vite
 - **UI Components**: Shadcn/ui + Radix UI
 - **Styling**: Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Storage)
+- **Backend**: Express.js + JWT + Neon PostgreSQL
+- **Database**: Neon PostgreSQL (gratuito)
 - **State Management**: React Query
 - **Routing**: React Router DOM
 - **Forms**: React Hook Form + Zod
@@ -52,32 +53,57 @@ Sistema completo de gestão de ordens de serviço desenvolvido especificamente p
 ## 📦 Instalação e Configuração
 
 ### 1. Clone o Repositório
+
 ```bash
-git clone https://github.com/dutraposto/evolink-field-report.git
-cd evolink-field-report
+git clone https://github.com/ryanasafebusiness/RM-refrigera-o.git
+cd RM-refrigera-o
 ```
 
 ### 2. Instale as Dependências
+
+#### Frontend
 ```bash
 npm install
 ```
 
-### 3. Configure o Supabase
-Crie um arquivo `.env` na raiz do projeto:
-```env
-VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sua-chave-publica
-```
-
-### 4. Execute as Migrações
+#### Backend
 ```bash
-# Se usando Supabase local
-npx supabase db reset
-
-# Se usando Supabase em produção, aplique as migrações manualmente
+cd backend
+npm install
+cd ..
 ```
 
-### 5. Inicie o Servidor
+### 3. Configure as Variáveis de Ambiente
+
+#### Backend (`backend/.env`)
+```env
+DATABASE_URL=postgresql://user:password@host/database?sslmode=require
+JWT_SECRET=sua-chave-secreta-aqui
+PORT=3001
+FRONTEND_URL=http://localhost:8080
+```
+
+#### Frontend (`.env` na raiz)
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+### 4. Execute as Migrações no Neon
+
+1. Acesse: https://console.neon.tech
+2. Abra seu projeto
+3. Clique em "SQL Editor"
+4. Execute as migrações em `supabase/migrations_neon/` na ordem
+
+### 5. Inicie o Sistema
+
+#### Terminal 1: Backend
+```bash
+cd backend
+npm run dev
+```
+
+#### Terminal 2: Frontend
 ```bash
 npm run dev
 ```
@@ -85,22 +111,19 @@ npm run dev
 ## 🗄️ Estrutura do Banco de Dados
 
 ### Tabelas Principais
-- **service_orders** - Ordens de serviço
+- **users** - Usuários do sistema
 - **profiles** - Perfis dos técnicos
+- **service_orders** - Ordens de serviço
 - **order_photos** - Fotos e vídeos
 - **order_parts_used** - Peças utilizadas
 - **order_parts_replaced** - Peças substituídas
 - **order_signatures** - Assinaturas digitais
-
-### Políticas RLS
-- Acesso baseado em autenticação
-- Técnicos podem gerenciar suas próprias OS
-- Políticas flexíveis para colaboração
+- **clients** - Clientes
 
 ## 📱 Como Usar
 
 ### 1. Acesso ao Sistema
-- Acesse `http://localhost:8081`
+- Acesse `http://localhost:8080`
 - Faça login ou crie uma conta
 - Configure seu perfil de técnico
 
@@ -148,10 +171,29 @@ npm run dev
 
 ## 🛡️ Segurança
 
-- **Autenticação** - Login seguro com Supabase Auth
-- **Políticas RLS** - Controle de acesso granular
+- **Autenticação** - Login seguro com JWT tokens
+- **Backend API** - Todas as operações protegidas
 - **Validação** - Validação de dados no frontend e backend
 - **Confirmação** - Diálogos de confirmação para ações críticas
+
+## 🌐 Hospedagem
+
+### Frontend
+- **Vercel**: https://rmrefrgeracaocom.vercel.app
+- Deploy automático via GitHub
+
+### Backend
+- Pode ser hospedado em:
+  - Railway
+  - Render
+  - Fly.io
+  - Vercel (serverless functions)
+  - Qualquer serviço Node.js
+
+### Database
+- **Neon PostgreSQL**: Gratuito (0.5GB)
+- Sem limite de tempo
+- Backups automáticos
 
 ## 📈 Melhorias Futuras
 
@@ -181,3 +223,13 @@ Para suporte técnico ou dúvidas sobre o sistema, entre em contato com a equipe
 ---
 
 **Desenvolvido com ❤️ para RM Refrigeração**
+
+## 🔄 Changelog
+
+Veja [CHANGELOG.md](./CHANGELOG.md) para histórico de mudanças.
+
+## 📚 Documentação
+
+- [BACKEND_SETUP.md](./BACKEND_SETUP.md) - Configuração do backend
+- [INSTALAR_BACKEND.md](./INSTALAR_BACKEND.md) - Guia de instalação
+- [EXECUTAR_MIGRACOES_NEON.md](./EXECUTAR_MIGRACOES_NEON.md) - Como executar migrações
