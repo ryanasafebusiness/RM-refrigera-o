@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authAPI, serviceOrdersAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Search, ArrowLeft, Wrench, Clock, CheckCircle, XCircle, Loader2, Users, ClipboardList } from "lucide-react";
-import { User, Session } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import MobileNavigation from "@/components/MobileNavigation";
 
@@ -24,59 +23,49 @@ interface ServiceOrder {
 
 const ServiceOrders = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (!session) {
-          navigate("/auth");
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
-
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("service_orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
+      const { orders } = await serviceOrdersAPI.getAll();
+      setOrders(orders || []);
     } catch (error: any) {
-      toast.error("Erro ao carregar ordens de serviço");
+      console.error("Erro ao carregar ordens de serviço:", error);
+      toast.error(error.message || "Erro ao carregar ordens de serviço");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          navigate("/auth");
+          return;
+        }
+        const { user } = await authAPI.me();
+        if (user) {
+          setUser(user);
+          fetchOrders();
+        } else {
+          navigate("/auth");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar autenticação:", error);
+        navigate("/auth");
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const getStatusColor = (status: string) => {
     switch (status) {

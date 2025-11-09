@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authAPI, serviceOrdersAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ClipboardList, LogOut, Wrench, Clock, CheckCircle, XCircle, Loader2, Users, FileText, TrendingUp } from "lucide-react";
-import { User, Session } from "@supabase/supabase-js";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import MobileNavigation from "@/components/MobileNavigation";
 
@@ -22,60 +21,54 @@ interface ServiceOrder {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [orders, setOrders] = useState<ServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (!session) {
-          navigate("/auth");
-        }
-      }
-    );
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("service_orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setOrders(data || []);
+      const { orders } = await serviceOrdersAPI.getAll();
+      // Ordenar por created_at descendente (mais recentes primeiro)
+      const sortedOrders = (orders || []).sort((a: ServiceOrder, b: ServiceOrder) => {
+        return new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime();
+      });
+      setOrders(sortedOrders);
     } catch (error: any) {
-      toast.error("Erro ao carregar ordens de serviço");
+      console.error("Erro ao carregar ordens de serviço:", error);
+      toast.error(error.message || "Erro ao carregar ordens de serviço");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          navigate("/auth");
+          return;
+        }
+        const { user } = await authAPI.me();
+        if (user) {
+          setUser(user);
+          fetchOrders();
+        } else {
+          navigate("/auth");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar autenticação:", error);
+        navigate("/auth");
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    authAPI.logout();
     navigate("/auth");
   };
 
