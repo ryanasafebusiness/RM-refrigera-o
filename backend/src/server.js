@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import serviceOrdersRoutes from './routes/serviceOrders.js';
+import clientsRoutes from './routes/clients.js';
 import { authenticateToken } from './middleware/auth.js';
 
 dotenv.config();
@@ -17,7 +18,9 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Increase JSON payload limit for large signatures
+app.use(express.json({ limit: '50mb' }));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -27,6 +30,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/service-orders', serviceOrdersRoutes);
+app.use('/api/clients', clientsRoutes);
 
 // Protected route example
 app.get('/api/protected', authenticateToken, (req, res) => {
