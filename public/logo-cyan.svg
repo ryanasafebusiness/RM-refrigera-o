@@ -1,0 +1,52 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fundo com gradiente elegante -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fundo com gradiente -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGradient)"/>
+  
+  <!-- Floco de neve central elegante -->
+  <g transform="translate(32, 32)">
+    <g stroke="url(#iconGradient)" stroke-width="2" fill="none" stroke-linecap="round">
+      <!-- Braços principais -->
+      <line x1="0" y1="-12" x2="0" y2="-6"/>
+      <line x1="0" y1="6" x2="0" y2="12"/>
+      <line x1="-12" y1="0" x2="-6" y2="0"/>
+      <line x1="6" y1="0" x2="12" y2="0"/>
+      
+      <!-- Braços diagonais -->
+      <line x1="-8" y1="-8" x2="-4" y2="-4"/>
+      <line x1="8" y1="-8" x2="4" y2="-4"/>
+      <line x1="-8" y1="8" x2="-4" y2="4"/>
+      <line x1="8" y1="8" x2="4" y2="4"/>
+    </g>
+  </g>
+  
+  <!-- Órbita elegante -->
+  <ellipse cx="32" cy="32" rx="20" ry="6" stroke="url(#iconGradient)" stroke-width="1.5" fill="none" transform="rotate(45 32 32)" opacity="0.8"/>
+  
+  <!-- Arco com gradiente -->
+  <defs>
+    <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#f1f5f9;stop-opacity:0.7" />
+    </linearGradient>
+  </defs>
+  <path d="M 12 12 Q 32 8 52 12" stroke="url(#arcGradient)" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Chave de boca elegante -->
+  <g transform="translate(52, 12)">
+    <rect x="-4" y="-2" width="8" height="4" rx="2" fill="url(#iconGradient)"/>
+    <rect x="-1" y="-3" width="2" height="6" rx="1" fill="url(#iconGradient)"/>
+    <rect x="1" y="-1" width="4" height="2" rx="1" fill="url(#iconGradient)"/>
+  </g>
+</svg>

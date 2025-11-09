@@ -1,0 +1,394 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 240 10% 98%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    
+    --primary-hover: 262 83% 52%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
+
+    --radius: 0.75rem;
+    
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px 0 hsl(0 0% 0% / 0.06);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -2px hsl(0 0% 0% / 0.05);
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 262 83% 58%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+    
+    --primary-hover: 262 83% 65%;
+
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262 83% 58%;
+    
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.4), 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+    --shadow-elevated: 0 10px 15px -3px hsl(0 0% 0% / 0.4), 0 4px 6px -2px hsl(0 0% 0% / 0.2);
+
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 262 83% 58%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 262 83% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Gradientes elegantes */
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(262 83% 65%) 100%);
+  }
+  
+  .gradient-card {
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.8) 100%);
+  }
+  
+  .gradient-border {
+    background: linear-gradient(135deg, hsl(var(--border)) 0%, hsl(var(--primary) / 0.2) 100%);
+  }
+
+  /* Sombras sofisticadas */
+  .shadow-glow {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+  }
+  
+  .shadow-card-elegant {
+    box-shadow: 
+      0 1px 3px 0 hsl(0 0% 0% / 0.1),
+      0 1px 2px 0 hsl(0 0% 0% / 0.06),
+      0 0 0 1px hsl(var(--border) / 0.5);
+  }
+
+  /* Animações suaves */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.2s ease-out;
+  }
+
+  /* Botões elegantes */
+  .btn-primary-elegant {
+    @apply gradient-primary text-primary-foreground shadow-glow hover:shadow-lg transition-all duration-300;
+  }
+  
+  .btn-secondary-elegant {
+    @apply bg-secondary/50 backdrop-blur-sm border border-border/50 hover:bg-secondary transition-all duration-300;
+  }
+
+  /* Cards elegantes */
+  .card-elegant {
+    @apply gradient-card shadow-card-elegant backdrop-blur-sm border border-border/50;
+  }
+
+  /* Inputs elegantes */
+  .input-elegant {
+    @apply bg-background/50 backdrop-blur-sm border border-border/50 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300;
+  }
+
+  /* Efeitos de hover */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-glow;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Interactive Menu Styles - Mobile Navigation */
+.menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.75rem, 2vw, 1.25rem);
+  padding: 0.5rem 1rem;
+  background: hsl(var(--card));
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  --menu-item-size: clamp(2.5rem, 6vw, 3.5rem);
+}
+
+.menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.5rem;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+}
+
+.menu__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--menu-item-size);
+  height: var(--menu-item-size);
+  background: hsl(var(--muted));
+  border-radius: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu__icon .icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: hsl(var(--muted-foreground));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu__item.active .menu__icon {
+  background: hsl(var(--primary));
+  transform: scale(1.1);
+}
+
+.menu__item.active .menu__icon .icon {
+  color: hsl(var(--primary-foreground));
+}
+
+.menu__text {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: hsl(var(--muted-foreground));
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transform: translateY(5px);
+}
+
+.menu__text.active {
+  opacity: 1;
+  transform: translateY(0);
+  color: hsl(var(--primary));
+}
+
+.menu__item::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 2px;
+  background: hsl(var(--primary));
+  border-radius: 2px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu__item.active::after {
+  width: var(--lineWidth, 0px);
+}
+
+/* Mobile Bottom Navigation Wrapper */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding: 0.75rem;
+  background: transparent;
+  pointer-events: none;
+}
+
+.mobile-nav .menu {
+  pointer-events: auto;
+  max-width: 100%;
+  margin: 0 auto;
+  border-radius: 16px;
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* Hide on desktop */
+@media (min-width: 768px) {
+  .mobile-nav {
+    display: none;
+  }
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  /* Headers */
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Page padding for mobile */
+  .pb-24 {
+    padding-bottom: 6rem !important;
+  }
+  
+  /* Card spacing */
+  .space-y-6 > * + * {
+    margin-top: 1.25rem;
+  }
+  
+  /* Button improvements */
+  button {
+    min-height: 40px;
+  }
+  
+  /* Input improvements */
+  input, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Header text sizes */
+  h1 {
+    font-size: 1.25rem;
+  }
+  
+  /* Reduce gaps in flex containers */
+  .flex.gap-2, .flex.gap-3, .flex.gap-4 {
+    gap: 0.5rem;
+  }
+  
+  /* Header padding */
+  header .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  
+  /* Better button spacing in mobile */
+  .flex.flex-col.gap-2 > button {
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Grid improvements for mobile */
+  .grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Safe area for notched devices */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .mobile-nav {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+  }
+}

@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Quadrado vermelho com cantos arredondados -->
+  <rect width="64" height="64" rx="12" fill="#e50914"/>
+  
+  <!-- Chave de boca branca no centro -->
+  <g transform="translate(32, 32)">
+    <!-- Cabeça da chave de boca -->
+    <rect x="-12" y="-4" width="24" height="8" rx="4" fill="#ffffff"/>
+    
+    <!-- Cabo da chave de boca -->
+    <rect x="-2" y="-16" width="4" height="24" rx="2" fill="#ffffff"/>
+    
+    <!-- Detalhes da cabeça -->
+    <rect x="-8" y="-2" width="16" height="4" rx="2" fill="#e50914"/>
+  </g>
+</svg>
