@@ -105,3 +105,117 @@ export const serviceOrdersAPI = {
   },
 };
 
+// Clients API
+export const clientsAPI = {
+  getAll: async () => {
+    return apiRequest<{ clients: any[] }>('/api/clients');
+  },
+
+  getById: async (id: string) => {
+    return apiRequest<{ client: any }>(`/api/clients/${id}`);
+  },
+
+  create: async (client: any) => {
+    return apiRequest<{ client: any }>('/api/clients', {
+      method: 'POST',
+      body: JSON.stringify(client),
+    });
+  },
+
+  update: async (id: string, client: any) => {
+    return apiRequest<{ client: any }>(`/api/clients/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(client),
+    });
+  },
+
+  delete: async (id: string) => {
+    return apiRequest<{ message: string }>(`/api/clients/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Order Photos API
+export const orderPhotosAPI = {
+  getByOrderId: async (orderId: string) => {
+    return apiRequest<{ photos: any[] }>(`/api/service-orders/${orderId}/photos`);
+  },
+
+  upload: async (orderId: string, file: File, photoType: string, mediaType: string, durationSeconds?: number) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('photoType', photoType);
+    formData.append('mediaType', mediaType);
+    if (durationSeconds) {
+      formData.append('durationSeconds', durationSeconds.toString());
+    }
+
+    const token = getToken();
+    const headers: HeadersInit = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/api/service-orders/${orderId}/photos`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+      throw new Error(error.error || `HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  delete: async (orderId: string, photoId: string) => {
+    return apiRequest<{ message: string }>(`/api/service-orders/${orderId}/photos/${photoId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Order Parts API
+export const orderPartsAPI = {
+  getByOrderId: async (orderId: string) => {
+    return apiRequest<{ parts: any[] }>(`/api/service-orders/${orderId}/parts`);
+  },
+
+  create: async (orderId: string, part: any) => {
+    return apiRequest<{ part: any }>(`/api/service-orders/${orderId}/parts`, {
+      method: 'POST',
+      body: JSON.stringify(part),
+    });
+  },
+
+  delete: async (orderId: string, partId: string) => {
+    return apiRequest<{ message: string }>(`/api/service-orders/${orderId}/parts/${partId}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
+// Order Signatures API
+export const orderSignaturesAPI = {
+  getByOrderId: async (orderId: string) => {
+    return apiRequest<{ signature: any | null }>(`/api/service-orders/${orderId}/signature`);
+  },
+
+  create: async (orderId: string, signatureData: string) => {
+    return apiRequest<{ signature: any }>(`/api/service-orders/${orderId}/signature`, {
+      method: 'POST',
+      body: JSON.stringify({ signature_data: signatureData }),
+    });
+  },
+
+  update: async (orderId: string, signatureData: string) => {
+    return apiRequest<{ signature: any }>(`/api/service-orders/${orderId}/signature`, {
+      method: 'PUT',
+      body: JSON.stringify({ signature_data: signatureData }),
+    });
+  },
+};
+

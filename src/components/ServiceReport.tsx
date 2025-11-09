@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { serviceOrdersAPI, orderPhotosAPI, orderPartsAPI, orderSignaturesAPI, authAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -70,40 +70,25 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
       setLoading(true);
       
       // Load order data
-      const { data: orderData, error: orderError } = await supabase
-        .from("service_orders")
-        .select("*")
-        .eq("id", orderId)
-        .single();
-
-      if (orderError) throw orderError;
+      const { order: orderData } = await serviceOrdersAPI.getById(orderId);
       setOrder(orderData);
 
       // Load photos
-      const { data: photosData } = await supabase
-        .from("order_photos")
-        .select("*")
-        .eq("order_id", orderId);
+      const { photos: photosData } = await orderPhotosAPI.getByOrderId(orderId);
       setPhotos(photosData || []);
 
       // Load parts replaced
-      const { data: partsReplacedData } = await supabase
-        .from("order_parts_replaced")
-        .select("*")
-        .eq("order_id", orderId);
+      const { parts: partsReplacedData } = await orderPartsAPI.getByOrderId(orderId);
       setPartsReplaced(partsReplacedData || []);
 
       // Load signature
-      const { data: signatureData, error: signatureError } = await supabase
-        .from("order_signatures")
-        .select("*")
-        .eq("order_id", orderId)
-        .single();
-      
-      if (signatureData && !signatureError) {
-        setSignature(signatureData);
-      } else if (signatureError && signatureError.code !== 'PGRST116') {
-        console.warn('Erro ao carregar assinatura:', signatureError.message);
+      try {
+        const { signature: signatureData } = await orderSignaturesAPI.getByOrderId(orderId);
+        if (signatureData) {
+          setSignature(signatureData);
+        }
+      } catch (error) {
+        console.warn('Erro ao carregar assinatura:', error);
       }
 
       // Load technician
@@ -112,8 +97,8 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
       }
 
     } catch (error: any) {
-      toast.error("Erro ao carregar dados do relatório");
-      console.error(error);
+      console.error("Erro ao carregar dados do relatório:", error);
+      toast.error("Erro ao carregar dados do relatório: " + (error.message || "Erro desconhecido"));
     } finally {
       setLoading(false);
     }
@@ -121,14 +106,15 @@ const ServiceReport = ({ orderId, onClose }: ServiceReportProps) => {
 
   const loadTechnician = async (technicianId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, name")
-        .eq("user_id", technicianId)
-        .single();
-
-      if (error) throw error;
-      setTechnician({ id: data.user_id, name: data.name });
+      const { user } = await authAPI.me();
+      if (user && user.id === technicianId) {
+        setTechnician({ 
+          id: user.id, 
+          name: user.name || user.email?.split('@')[0] || "Técnico" 
+        });
+      } else {
+        setTechnician({ id: technicianId, name: "Técnico" });
+      }
     } catch (error) {
       console.error("Erro ao carregar técnico:", error);
       setTechnician({ id: technicianId, name: "Técnico" });

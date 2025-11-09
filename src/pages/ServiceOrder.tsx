@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { serviceOrdersAPI, orderPhotosAPI, orderPartsAPI, orderSignaturesAPI, authAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,55 +56,65 @@ const ServiceOrder = () => {
   }, [id]);
 
   const loadOrder = async () => {
+    if (!id) return;
+    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("service_orders")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const { order } = await serviceOrdersAPI.getById(id);
 
-      if (error) throw error;
-
-      setStatus(data.status);
-      setClientName(data.client_name);
-      setLocation(data.location);
-      setContactName(data.contact_name);
-      setContactPhone(data.contact_phone);
-      setProblemDescription(data.problem_description);
-      setServiceDescription(data.service_description || "");
-      setInternalNotes(data.internal_notes || "");
-      setTotalValue((data as any).total_value || 0);
+      setStatus(order.status);
+      setClientName(order.client_name);
+      setLocation(order.location);
+      setContactName(order.contact_name);
+      setContactPhone(order.contact_phone);
+      setProblemDescription(order.problem_description);
+      setServiceDescription(order.service_description || "");
+      setInternalNotes(order.internal_notes || "");
+      setTotalValue(order.total_value || 0);
 
       loadPhotos();
       loadParts();
       loadSignature();
-      loadTechnician(data.technician_id);
+      if (order.technician_id) {
+        loadTechnician(order.technician_id);
+      }
     } catch (error: any) {
-      toast.error("Erro ao carregar OS");
+      console.error("Erro ao carregar OS:", error);
+      toast.error(error.message || "Erro ao carregar OS");
     } finally {
       setLoading(false);
     }
   };
 
   const loadPhotos = async () => {
-    const { data } = await supabase.from("order_photos").select("*").eq("order_id", id);
-    if (data) setPhotos(data);
+    if (!id) return;
+    try {
+      const { photos } = await orderPhotosAPI.getByOrderId(id);
+      setPhotos(photos || []);
+    } catch (error) {
+      console.error("Erro ao carregar fotos:", error);
+    }
   };
 
   const loadParts = async () => {
-    const { data } = await supabase.from("order_parts_replaced").select("*").eq("order_id", id);
-    if (data) setPartsReplaced(data);
+    if (!id) return;
+    try {
+      const { parts } = await orderPartsAPI.getByOrderId(id);
+      setPartsReplaced(parts || []);
+      // Calcular total
+      const total = (parts || []).reduce((sum: number, part: any) => sum + (part.part_value || 0), 0);
+      setTotalValue(total);
+    } catch (error) {
+      console.error("Erro ao carregar peças:", error);
+    }
   };
 
   const loadSignature = async () => {
+    if (!id) return;
     try {
-      const { data, error } = await supabase.from("order_signatures").select("*").eq("order_id", id).single();
-      if (data && !error) {
-        setSignature(data.signature_data);
-      } else if (error && error.code !== 'PGRST116') {
-        // PGRST116 is "no rows returned" - this is expected if no signature exists
-        console.warn('Erro ao carregar assinatura:', error.message);
+      const { signature } = await orderSignaturesAPI.getByOrderId(id);
+      if (signature) {
+        setSignature(signature.signature_data);
       }
     } catch (error) {
       console.warn('Erro ao carregar assinatura:', error);
@@ -113,24 +123,18 @@ const ServiceOrder = () => {
 
   const loadTechnician = async (technicianId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("user_id, name")
-        .eq("user_id", technicianId)
-        .single();
-
-      if (error) throw error;
-      setTechnician({ id: data.user_id, name: data.name });
+      const { user } = await authAPI.me();
+      if (user && user.id === technicianId) {
+        setTechnician({ 
+          id: user.id, 
+          name: user.name || user.email?.split('@')[0] || "Técnico" 
+        });
+      } else {
+        setTechnician({ id: technicianId, name: "Técnico" });
+      }
     } catch (error) {
       console.error("Erro ao carregar técnico:", error);
-      // Se não encontrar no profiles, tenta buscar o usuário diretamente
-      const { data: userData } = await supabase.auth.getUser();
-      if (userData.user && userData.user.id === technicianId) {
-        setTechnician({ 
-          id: userData.user.id, 
-          name: userData.user.user_metadata?.name || "Técnico" 
-        });
-      }
+      setTechnician({ id: technicianId, name: "Técnico" });
     }
   };
 
@@ -140,20 +144,13 @@ const ServiceOrder = () => {
     try {
       const partValue = parseFloat(newPartValue) || 0;
       
-      const { data, error } = await supabase
-        .from("order_parts_replaced")
-        .insert({
-          order_id: id,
-          old_part: newOldPart.trim(),
-          new_part: newNewPart.trim(),
-          part_value: partValue
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const { part } = await orderPartsAPI.create(id, {
+        old_part: newOldPart.trim(),
+        new_part: newNewPart.trim(),
+        part_value: partValue
+      });
       
-      setPartsReplaced([...partsReplaced, data]);
+      setPartsReplaced([...partsReplaced, part]);
       setNewOldPart("");
       setNewNewPart("");
       setNewPartValue("");
@@ -164,21 +161,19 @@ const ServiceOrder = () => {
       
       toast.success("Substituição adicionada com sucesso!");
     } catch (error: any) {
-      toast.error("Erro ao adicionar substituição: " + error.message);
+      console.error("Erro ao adicionar substituição:", error);
+      toast.error("Erro ao adicionar substituição: " + (error.message || "Erro desconhecido"));
     }
   };
 
   const removePartReplaced = async (partId: string) => {
+    if (!id) return;
+    
     try {
       // Encontrar a peça antes de remover para subtrair do total
       const partToRemove = partsReplaced.find(p => p.id === partId);
       
-      const { error } = await supabase
-        .from("order_parts_replaced")
-        .delete()
-        .eq("id", partId);
-
-      if (error) throw error;
+      await orderPartsAPI.delete(id, partId);
       
       setPartsReplaced(partsReplaced.filter(p => p.id !== partId));
       
@@ -190,7 +185,8 @@ const ServiceOrder = () => {
       
       toast.success("Substituição removida com sucesso!");
     } catch (error: any) {
-      toast.error("Erro ao remover substituição: " + error.message);
+      console.error("Erro ao remover substituição:", error);
+      toast.error("Erro ao remover substituição: " + (error.message || "Erro desconhecido"));
     }
   };
 
@@ -201,48 +197,14 @@ const ServiceOrder = () => {
     }
 
     try {
-      console.log("Starting deletion process for order:", id);
       setLoading(true);
       
-      // Verify user authentication
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      await serviceOrdersAPI.delete(id);
       
-      if (authError || !user) {
-        console.error("Authentication error:", authError);
-        toast.error("Erro de autenticação");
-        return;
-      }
-      
-      console.log("User authenticated:", user.id);
-      
-      // With ON DELETE CASCADE, we only need to delete the main order
-      // All related data will be automatically deleted
-      console.log("Attempting to delete order from database...");
-      const { data, error: orderError } = await supabase
-        .from("service_orders")
-        .delete()
-        .eq("id", id)
-        .select();
-
-      console.log("Delete result:", { data, error: orderError });
-
-      if (orderError) {
-        console.error("Error deleting order:", orderError);
-        
-        // Check if it's an RLS policy error
-        if (orderError.message?.includes("row-level security") || orderError.code === 'PGRST301') {
-          toast.error("Você não tem permissão para excluir esta OS");
-        } else {
-          throw orderError;
-        }
-        return;
-      }
-
-      console.log("Order deleted successfully");
       toast.success("OS excluída com sucesso!");
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Complete delete error:", error);
+      console.error("Erro ao excluir OS:", error);
       toast.error("Erro ao excluir OS: " + (error.message || "Erro desconhecido"));
     } finally {
       setLoading(false);
@@ -255,25 +217,15 @@ const ServiceOrder = () => {
     setLoading(true);
 
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error("Auth error:", authError);
-        throw new Error("Erro de autenticação: " + authError.message);
-      }
+      const { user } = await authAPI.me();
       
       if (!user) {
-        console.error("No user found");
         throw new Error("Usuário não autenticado");
       }
-
-      console.log("User ID:", user.id);
-      console.log("Creating order with technician_id:", user.id);
 
       if (isNewOrder) {
         const orderData = {
           status,
-          technician_id: user.id,
           client_name: clientName,
           location,
           contact_name: contactName,
@@ -283,86 +235,56 @@ const ServiceOrder = () => {
           internal_notes: internalNotes,
         };
 
-        console.log("Order data:", orderData);
-
-        const { data, error } = await supabase
-          .from("service_orders")
-          .insert(orderData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Insert error:", error);
-          throw error;
-        }
+        const { order } = await serviceOrdersAPI.create(orderData);
         
         // Save signature if exists
-        if (signature) {
-          console.log("Saving signature for new order:", data.id);
-          const { data: sigData, error: sigError } = await supabase
-            .from("order_signatures")
-            .insert({
-              order_id: data.id,
-              signature_data: signature,
-            })
-            .select();
-          
-          if (sigError) {
-            console.error("Error saving signature:", sigError);
-            toast.error("Assinatura não foi salva: " + sigError.message);
-          } else {
-            console.log("Signature saved successfully:", sigData);
+        if (signature && order.id) {
+          try {
+            await orderSignaturesAPI.create(order.id, signature);
+          } catch (sigError: any) {
+            console.error("Erro ao salvar assinatura:", sigError);
+            toast.error("Assinatura não foi salva: " + (sigError.message || "Erro desconhecido"));
           }
-        } else {
-          console.log("No signature to save");
         }
         
         toast.success("OS criada com sucesso!");
-        navigate(`/order/${data.id}`);
+        navigate(`/order/${order.id}`);
       } else {
-        const { error } = await supabase
-          .from("service_orders")
-          .update({
-            status,
-            client_name: clientName,
-            location,
-            contact_name: contactName,
-            contact_phone: contactPhone,
-            problem_description: problemDescription,
-            service_description: serviceDescription,
-            internal_notes: internalNotes,
-            total_value: totalValue,
-            completion_datetime: status === "Concluída" ? new Date().toISOString() : null,
-          })
-          .eq("id", id);
-
-        if (error) throw error;
+        if (!id) return;
+        
+        await serviceOrdersAPI.update(id, {
+          status,
+          client_name: clientName,
+          location,
+          contact_name: contactName,
+          contact_phone: contactPhone,
+          problem_description: problemDescription,
+          service_description: serviceDescription,
+          internal_notes: internalNotes,
+          total_value: totalValue,
+          completion_datetime: status === "Concluída" ? new Date().toISOString() : null,
+        });
         
         // Save or update signature
-        if (signature && id) {
-          console.log("Saving/updating signature for order:", id);
-          const { data: sigData, error: sigError } = await supabase
-            .from("order_signatures")
-            .upsert({
-              order_id: id,
-              signature_data: signature,
-            })
-            .select();
-          
-          if (sigError) {
-            console.error("Error saving signature:", sigError);
-            toast.error("Assinatura não foi salva: " + sigError.message);
-          } else {
-            console.log("Signature saved successfully:", sigData);
+        if (signature) {
+          try {
+            // Try to update first, if it fails, create
+            try {
+              await orderSignaturesAPI.update(id, signature);
+            } catch {
+              await orderSignaturesAPI.create(id, signature);
+            }
+          } catch (sigError: any) {
+            console.error("Erro ao salvar assinatura:", sigError);
+            toast.error("Assinatura não foi salva: " + (sigError.message || "Erro desconhecido"));
           }
-        } else {
-          console.log("No signature to save");
         }
         
         toast.success("OS atualizada com sucesso!");
       }
     } catch (error: any) {
-      toast.error(error.message);
+      console.error("Erro ao salvar OS:", error);
+      toast.error(error.message || "Erro ao salvar OS");
     } finally {
       setLoading(false);
     }

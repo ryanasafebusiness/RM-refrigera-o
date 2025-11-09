@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { orderPhotosAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Camera, X, Loader2 } from "lucide-react";
@@ -48,41 +48,8 @@ const PhotoUpload = ({
         return;
       }
 
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
-      const filePath = `${orderId}/${fileName}`;
-
-      // Upload para o storage
-      const { error: uploadError } = await supabase.storage
-        .from("order-photos")
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw new Error(`Erro no upload: ${uploadError.message}`);
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("order-photos")
-        .getPublicUrl(filePath);
-
-      // Inserir no banco de dados
-      const { error: dbError } = await supabase
-        .from("order_photos")
-        .insert({
-          order_id: orderId,
-          photo_url: publicUrl,
-          photo_type: photoType,
-          media_type: 'image'
-        });
-
-      if (dbError) {
-        console.error('Database error:', dbError);
-        throw new Error(`Erro no banco de dados: ${dbError.message}`);
-      }
+      // Upload usando a API
+      await orderPhotosAPI.upload(orderId, file, photoType, 'image');
 
       toast.success("Foto enviada com sucesso!");
       onPhotosChange();
@@ -99,25 +66,12 @@ const PhotoUpload = ({
 
   const deletePhoto = async (photoId: string, photoUrl: string) => {
     try {
-      const filePath = photoUrl.split("/order-photos/")[1];
-      
-      const { error: storageError } = await supabase.storage
-        .from("order-photos")
-        .remove([filePath]);
-
-      if (storageError) throw storageError;
-
-      const { error: dbError } = await supabase
-        .from("order_photos")
-        .delete()
-        .eq("id", photoId);
-
-      if (dbError) throw dbError;
-
+      await orderPhotosAPI.delete(orderId, photoId);
       toast.success("Foto removida com sucesso!");
       onPhotosChange();
     } catch (error: any) {
-      toast.error("Erro ao remover foto: " + error.message);
+      console.error("Erro ao remover foto:", error);
+      toast.error("Erro ao remover foto: " + (error.message || "Erro desconhecido"));
     }
   };
 

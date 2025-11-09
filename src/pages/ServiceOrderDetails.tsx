@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { serviceOrdersAPI, orderPhotosAPI, orderPartsAPI, authAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,22 +65,21 @@ const ServiceOrderDetails = () => {
   }, [id]);
 
   const loadOrder = async () => {
+    if (!id) return;
+    
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("service_orders")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-
-      setOrder(data);
-      loadTechnician(data.technician_id);
+      const { order } = await serviceOrdersAPI.getById(id);
+      setOrder(order);
+      
+      if (order.technician_id) {
+        loadTechnician(order.technician_id);
+      }
       loadParts();
       loadPhotos();
     } catch (error: any) {
-      toast.error("Erro ao carregar OS");
+      console.error("Erro ao carregar OS:", error);
+      toast.error(error.message || "Erro ao carregar OS");
     } finally {
       setLoading(false);
     }
@@ -88,23 +87,16 @@ const ServiceOrderDetails = () => {
 
   const loadTechnician = async (technicianId: string) => {
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id, name")
-        .eq("id", technicianId)
-        .single();
-
-      if (data) {
-        setTechnician({ id: data.id, name: data.name });
+      // Try to get user info from current auth
+      const { user } = await authAPI.me();
+      if (user && user.id === technicianId) {
+        setTechnician({ 
+          id: user.id, 
+          name: user.name || user.email?.split('@')[0] || "Técnico" 
+        });
       } else {
-        // Fallback: try to get from auth
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && user.id === technicianId) {
-          setTechnician({ 
-            id: user.id, 
-            name: user.user_metadata?.name || user.email?.split('@')[0] || "Técnico" 
-          });
-        }
+        // Fallback: use technician ID as name
+        setTechnician({ id: technicianId, name: "Técnico" });
       }
     } catch (error) {
       console.error("Erro ao carregar técnico:", error);
@@ -116,12 +108,8 @@ const ServiceOrderDetails = () => {
     if (!id) return;
     
     try {
-      const { data } = await supabase
-        .from("order_parts_replaced")
-        .select("*")
-        .eq("order_id", id);
-      
-      if (data) setPartsReplaced(data);
+      const { parts } = await orderPartsAPI.getByOrderId(id);
+      setPartsReplaced(parts || []);
     } catch (error) {
       console.error("Erro ao carregar peças:", error);
     }
@@ -131,12 +119,8 @@ const ServiceOrderDetails = () => {
     if (!id) return;
     
     try {
-      const { data } = await supabase
-        .from("order_photos")
-        .select("*")
-        .eq("order_id", id);
-      
-      if (data) setPhotos(data);
+      const { photos } = await orderPhotosAPI.getByOrderId(id);
+      setPhotos(photos || []);
     } catch (error) {
       console.error("Erro ao carregar fotos:", error);
     }

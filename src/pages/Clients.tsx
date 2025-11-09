@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { clientsAPI, authAPI } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,15 +52,11 @@ const Clients = () => {
   const fetchClients = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("clients")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (error) throw error;
-      setClients(data || []);
+      const { clients } = await clientsAPI.getAll();
+      setClients(clients || []);
     } catch (error: any) {
-      toast.error("Erro ao carregar clientes");
+      console.error("Erro ao carregar clientes:", error);
+      toast.error(error.message || "Erro ao carregar clientes");
     } finally {
       setLoading(false);
     }
@@ -112,7 +108,7 @@ const Clients = () => {
 
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = await authAPI.me();
       
       if (!user) {
         toast.error("Usuário não autenticado");
@@ -121,47 +117,37 @@ const Clients = () => {
 
       if (selectedClient) {
         // Update existing client
-        const { error } = await supabase
-          .from("clients")
-          .update({
-            name,
-            email: email || null,
-            phone,
-            address: address || null,
-            city: city || null,
-            state: state || null,
-            zip_code: zipCode || null,
-            notes: notes || null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", selectedClient.id);
-
-        if (error) throw error;
+        await clientsAPI.update(selectedClient.id, {
+          name,
+          email: email || null,
+          phone,
+          address: address || null,
+          city: city || null,
+          state: state || null,
+          zip_code: zipCode || null,
+          notes: notes || null,
+        });
         toast.success("Cliente atualizado com sucesso!");
       } else {
         // Create new client
-        const { error } = await supabase
-          .from("clients")
-          .insert({
-            name,
-            email: email || null,
-            phone,
-            address: address || null,
-            city: city || null,
-            state: state || null,
-            zip_code: zipCode || null,
-            notes: notes || null,
-            created_by: user.id,
-          });
-
-        if (error) throw error;
+        await clientsAPI.create({
+          name,
+          email: email || null,
+          phone,
+          address: address || null,
+          city: city || null,
+          state: state || null,
+          zip_code: zipCode || null,
+          notes: notes || null,
+        });
         toast.success("Cliente cadastrado com sucesso!");
       }
 
       fetchClients();
       handleCloseDialog();
     } catch (error: any) {
-      toast.error("Erro ao salvar cliente: " + error.message);
+      console.error("Erro ao salvar cliente:", error);
+      toast.error("Erro ao salvar cliente: " + (error.message || "Erro desconhecido"));
     } finally {
       setLoading(false);
     }
@@ -172,18 +158,14 @@ const Clients = () => {
 
     try {
       setLoading(true);
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("id", selectedClient.id);
-
-      if (error) throw error;
+      await clientsAPI.delete(selectedClient.id);
       toast.success("Cliente excluído com sucesso!");
       fetchClients();
       setShowDeleteDialog(false);
       setSelectedClient(null);
     } catch (error: any) {
-      toast.error("Erro ao excluir cliente: " + error.message);
+      console.error("Erro ao excluir cliente:", error);
+      toast.error("Erro ao excluir cliente: " + (error.message || "Erro desconhecido"));
     } finally {
       setLoading(false);
     }

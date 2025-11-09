@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { authAPI } from "@/lib/api-client";
 import { InteractiveMenu, InteractiveMenuItem } from "./InteractiveMenu";
 import { Home, ClipboardList, Users, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -20,8 +20,8 @@ const MobileNavigation = () => {
     }
   }, [location.pathname]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
+    authAPI.logout();
     navigate("/auth");
   };
 
